@@ -273,6 +273,17 @@ def run(
     # Compute metrics
     stats = [torch.cat(x, 0).cpu().numpy() for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
+        # Compute metrics: stats = (tp, conf, pred_cls, target_cls)
+        stats = [torch.cat(x, 0).cpu().numpy() for x in zip(*stats)]  # to numpy
+        if len(stats) and stats[0].any():
+            # roc 커브 확인 코드
+            if task == 'test' and single_cls:
+                import sklearn.metrics
+                from utils.metrics import plot_roc_curve
+                y_true, y_score = stats[0][:,0].astype(int), stats[1]
+                fpr, tpr, thresholds = sklearn.metrics.roc_curve(y_true, y_score, pos_label=1) # 1번 클래스를 양성으로 가정
+                auc = sklearn.metrics.auc(fpr, tpr)
+                plot_roc_curve(fpr, tpr, auc, save_dir=save_dir)
         tp, fp, p, r, f1, ap, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
         mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
